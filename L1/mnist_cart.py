@@ -5,10 +5,11 @@
 # @Desc  :
 
 import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import load_digits
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
 # 加载数据
@@ -27,6 +28,10 @@ plt.imshow(digits.images[0])
 plt.show()
 # 分割数据，将25%的数据作为测试集，其余作为训练集
 train_x, test_x, train_y, test_y = train_test_split(data, digits.target, test_size=0.25, random_state=2020)
+# data = np.load("mnist.npz")
+# train_x, train_y, test_x, test_y  = data['x_train'], data['y_train'], data['x_test'], data['y_test']
+# train_x = train_x.reshape(train_x.shape[0], -1)
+# test_x = test_x.reshape(test_x.shape[0], -1)
 
 # # 采用Z-Score规范化
 # ss = StandardScaler()
