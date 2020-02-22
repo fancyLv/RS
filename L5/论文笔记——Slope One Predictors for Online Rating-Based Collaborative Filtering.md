@@ -10,8 +10,8 @@
 ## Slope One
 其基本的想法来自于简单的一元线性模型 𝑤=𝑓(𝑣)=𝑣+𝑏。
 已知一组训练点
-![](http://latex.codecogs.com/gif.latex?(v_i,w_i)_{i=1}^n)，利用此线性模型最小化预测误差的平方和，我们可以获得
-$$b=\sum_i \frac{w_i-v_i}{n}$$，b为𝑤𝑖和𝑣𝑖差值的平均值。
+![](http://chart.googleapis.com/chart?cht=tx&chl=\Large%20(v_i,w_i)_{i=1}^n)，利用此线性模型最小化预测误差的平方和，我们可以获得
+![](http://chart.googleapis.com/chart?cht=tx&chl=\Large%20b=\sum_i \frac{w_i-v_i}{n}），b为𝑤𝑖和𝑣𝑖差值的平均值。
 定义item i 相对于 item j 的平均偏差：$$dev_{j,i}=\sum_{u\in S_{j,i}(\chi)}\frac{u_j-u_i}{card(S_{j,i}(\chi))}$$
 其中 $$S_{j,i}(\chi)$$表示同时对item i 和 j给予了评分的用户集合，而 𝑐𝑎𝑟𝑑(S) 表示集合S包含的元素数量。
 可以用 $$dev_{j,i}+u_i$$ 获得用户u对 item j的预测值。当把所有这种可能的预测平均起来，可以得到：
