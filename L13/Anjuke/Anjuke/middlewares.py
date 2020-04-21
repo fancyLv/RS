@@ -5,99 +5,80 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-from scrapy import signals
+import base64
+from collections import defaultdict
+from urllib.request import _parse_proxy
+
+from scrapy.utils.python import to_bytes
+from twisted.internet.error import ConnectionDone, ConnectionRefusedError
 
 
-class AnjukeSpiderMiddleware(object):
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the spider middleware does not modify the
-    # passed objects.
+class ProxyMiddleware(object):
+    maxbans = 400
+    ban_code = 503
+    download_timeout = 190
+    connection_refused_delay = 90
 
-    @classmethod
-    def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
-
-    def process_spider_input(self, response, spider):
-        # Called for each response that goes through the spider
-        # middleware and into the spider.
-
-        # Should return None or raise an exception.
-        return None
-
-    def process_spider_output(self, response, result, spider):
-        # Called with the results returned from the Spider, after
-        # it has processed the response.
-
-        # Must return an iterable of Request, dict or Item objects.
-        for i in result:
-            yield i
-
-    def process_spider_exception(self, response, exception, spider):
-        # Called when a spider or process_spider_input() method
-        # (from other spider middleware) raises an exception.
-
-        # Should return either None or an iterable of Request, dict
-        # or Item objects.
-        pass
-
-    def process_start_requests(self, start_requests, spider):
-        # Called with the start requests of the spider, and works
-        # similarly to the process_spider_output() method, except
-        # that it doesn’t have a response associated.
-
-        # Must return only requests (not items).
-        for r in start_requests:
-            yield r
-
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
-
-
-class AnjukeDownloaderMiddleware(object):
-    # Not all methods need to be defined. If a method is not defined,
-    # scrapy acts as if the downloader middleware does not modify the
-    # passed objects.
+    def __init__(self, crawler):
+        self._bans = defaultdict(int)
+        self.crawler = crawler
+        self._saved_delays = defaultdict(lambda: None)
+        proxy_url = self.crawler.settings.get('PROXY_URL')
+        self.proxy_type, self.user, self.password, self.hostport = _parse_proxy(proxy_url)
 
     @classmethod
     def from_crawler(cls, crawler):
-        # This method is used by Scrapy to create your spiders.
-        s = cls()
-        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
-        return s
+        o = cls(crawler)
+        return o
 
     def process_request(self, request, spider):
-        # Called for each request that goes through the downloader
-        # middleware.
-
-        # Must either:
-        # - return None: continue processing this request
-        # - or return a Response object
-        # - or return a Request object
-        # - or raise IgnoreRequest: process_exception() methods of
-        #   installed downloader middleware will be called
-        return None
+        if self.hostport:
+            proxy_url = self.proxy_type + '://' + self.hostport if self.proxy_type else 'http://' + self.hostport
+            request.meta['proxy'] = proxy_url
+            if self.user and self.password:
+                user_pass = to_bytes('%s:%s' % (self.user, self.password), encoding="latin-1")
+                creds = base64.b64encode(user_pass).strip()
+                request.headers['Proxy-Authorization'] = b'Basic ' + creds
 
     def process_response(self, request, response, spider):
-        # Called with the response returned from the downloader.
-
-        # Must either;
-        # - return a Response object
-        # - return a Request object
-        # - or raise IgnoreRequest
+        key = self._get_slot_key(request)
+        self._restore_original_delay(request)
+        if response.status == self.ban_code:
+            self._bans[key] += 1
+            if self._bans[key] > self.maxbans:
+                self.crawler.engine.close_spider(spider, 'banned')
+            else:
+                after = response.headers.get('retry-after')
+                if after:
+                    self._set_custom_delay(request, float(after))
+        else:
+            self._bans[key] = 0
         return response
 
     def process_exception(self, request, exception, spider):
-        # Called when a download handler or a process_request()
-        # (from other downloader middleware) raises an exception.
+        if isinstance(exception, (ConnectionRefusedError, ConnectionDone)):
+            self._set_custom_delay(request, self.connection_refused_delay)
 
-        # Must either:
-        # - return None: continue processing this exception
-        # - return a Response object: stops process_exception() chain
-        # - return a Request object: stops process_exception() chain
-        pass
+    def _get_slot_key(self, request):
+        return request.meta.get('download_slot')
 
-    def spider_opened(self, spider):
-        spider.logger.info('Spider opened: %s' % spider.name)
+    def _get_slot(self, request):
+        key = self._get_slot_key(request)
+        return key, self.crawler.engine.downloader.slots.get(key)
+
+    def _set_custom_delay(self, request, delay):
+        """Set custom delay for slot and save original one."""
+        key, slot = self._get_slot(request)
+        if not slot:
+            return
+        if self._saved_delays[key] is None:
+            self._saved_delays[key] = slot.delay
+        slot.delay = delay
+
+    def _restore_original_delay(self, request):
+        """Restore original delay for slot if it was changed."""
+        key, slot = self._get_slot(request)
+        if not slot:
+            return
+        if self._saved_delays[key] is not None:
+            slot.delay, self._saved_delays[key] = self._saved_delays[key], None

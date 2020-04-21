@@ -14,3 +14,4 @@ class AnjukeItem(Item):
     date = Field()
     price = Field()
     compare = Field()
+    update_time = Field()
