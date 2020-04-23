@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-import scrapy
-from scrapy.http import Request
 import calendar
 import datetime
+
+import scrapy
+from scrapy.http import Request
+
 from Anjuke.items import AnjukeItem
-from urllib.parse import urlparse
 
 
 class AnjukeSpider(scrapy.Spider):
@@ -15,29 +16,17 @@ class AnjukeSpider(scrapy.Spider):
     def parse(self, response):
         # 首页
         for url in response.css('.elem-l > a::attr(href)').extract():
-            # parsed_result=urlparse(url)
-            # if parsed_result.scheme == 'http':
-            #     url = url.replace('http','https')
             yield Request(url=url, callback=self.parse_province_list)
-            # break
 
     def parse_province_list(self, response):
         # 各省历年数据列表页
         for url in response.css('h3 > a::attr(href)').extract():  # 更多
-            # parsed_result = urlparse(url)
-            # if parsed_result.scheme == 'http':
-            #     url = url.replace('http', 'https')
             yield Request(url, callback=self.parse_city_listl)
-            # break
 
     def parse_city_listl(self, response):
         # 各市列表页
         for url in response.css('.boxstyle1 ul > li > a::attr(href)').extract():
-            # parsed_result = urlparse(url)
-            # if parsed_result.scheme == 'http':
-            #     url = url.replace('http', 'https')
             yield Request(url, callback=self.parse_detail)
-            # break
 
     def parse_detail(self, response):
         province = response.css('.crumb > a::text').re('(?:\d+)(.+)(?:房价)')[-1]

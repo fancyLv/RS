@@ -22,7 +22,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36
 ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
-CONCURRENT_REQUESTS = 3
+CONCURRENT_REQUESTS = 4
 
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
@@ -98,11 +98,11 @@ ITEM_PIPELINES = {
 HOST = '127.0.0.1'
 PORT = 3306
 USER = 'root'
-PASSWORD = 'psds#2018'
+PASSWORD = 'root123456'
 DATABASE = 'test'
 
 RETRY_TIMES = 10
-RETRY_HTTP_CODES = [400, 500, 502, 503, 504, 522, 524, 408, 429]
+RETRY_HTTP_CODES = [302, 400, 500, 502, 503, 504, 522, 524, 408, 429]
 
 # HTTPPROXY_ENABLED = True
 # PROXY_URL = 'https://192.168.83.110:8070'
