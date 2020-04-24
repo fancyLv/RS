@@ -11,7 +11,7 @@ import dash_html_components as html
 import pandas as pd
 from dash.dependencies import Input, Output
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv('data/data.csv')
 
 app = dash.Dash()
 auth = dash_auth.BasicAuth(
@@ -28,7 +28,7 @@ app.layout = html.Div([
                 options=[
                     {'label': x, 'value': x} for x in df['province'].unique()
                 ],
-                value='一线城市'
+                value='北京'
             )],
             style={'width': '49%', 'display': 'inline-block'}
         ),
@@ -96,4 +96,4 @@ def update_graph(selected_dropdown_value):
 
 
 if __name__ == '__main__':
-    app.run_server(host="0.0.0.0")
+    app.run_server(host="0.0.0.0", port=8051)
